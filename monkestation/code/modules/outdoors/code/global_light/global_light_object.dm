@@ -88,7 +88,7 @@ Sunlight System
 		if(corner.master_NW)
 			turf |= corner.master_NW
 	turf |= source_turf /* get our calculated indoor lighting */
-	GLOB.global_light_queue_corner |= turf
+	GLOB.global_light_queue_corner += turf
 
 	//Empty our affecting_corners list
 	affecting_corners = null
@@ -163,7 +163,7 @@ Sunlight System
 		if(corner.master_NW)
 			temp_master_list |= corner.master_NW
 
-	GLOB.global_light_queue_corner |= temp_master_list /* update the boys */
+	GLOB.global_light_queue_corner += temp_master_list /* update the boys */
 
 /* Related object changes */
 /* I moved this here to consolidate sunlight changes as much as possible, so its easily disabled */
@@ -323,7 +323,7 @@ Sunlight System
 		for(effect as anything in lighting_corner_NW.glob_affect)
 			global_light_updates |= effect.source_turf
 
-	GLOB.global_light_queue_work |= global_light_updates
+	GLOB.global_light_queue_work += global_light_updates
 
 	var/turf/T = GET_TURF_BELOW(src)
 	if(T)

@@ -7,14 +7,11 @@ ADMIN_VERB(run_particle_weather, R_ADMIN, FALSE, "Run Particle Weather", "Trigge
 	if(!weather_type)
 		return
 
-	var/where = input(user, "Choose Where", "Weather") as null|anything in list("Eclipse", "Default")
+	var/where = input(user, "Choose Where", "Weather") as null|anything in list(ZTRAIT_STATION, ZTRAIT_ECLIPSE)
 	if(!where)
 		return
 
-	var/send_value = FALSE
-	if(where == "Eclipse")
-		send_value = TRUE
-	SSweather_conditions.run_weather(new weather_type(where), TRUE, send_value)
+	SSweather_conditions.run_weather(new weather_type(where), where)
 
 	message_admins("[key_name_admin(user)] started weather of type [weather_type].")
 	log_admin("[key_name(user)] started weather of type [weather_type].")

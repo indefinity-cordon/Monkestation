@@ -54,7 +54,7 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	)
 
 /datum/weather_event/thunder/Destroy(force)
-	if(SSglobal_light.weather_light_affecting_event == src)
+	if(SSglobal_light.weather_light_affecting_event && SSglobal_light.weather_light_affecting_event == src)
 		SSglobal_light.weather_light_affecting_event = null
 
 	. = ..()
@@ -93,6 +93,7 @@ GLOBAL_LIST_EMPTY(siren_objects)
 		sleep(duration)
 
 	else if(stage > max_stages)
+		SSglobal_light.weather_light_affecting_event = null
 		if(SSglobal_light.enabled)
 			for(var/atom/movable/screen/fullscreen/lighting_backdrop/sunlight/plane in GLOB.global_light_planes_need_vis)
 				SSglobal_light.update_color(plane)
@@ -461,7 +462,8 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	var/eclipse = FALSE
 
 /datum/particle_weather/New(set_plane_type)
-	weather_special_effect = new weather_special_effect(src)
+	if(weather_special_effect)
+		weather_special_effect = new weather_special_effect(src)
 
 	. = ..()
 
@@ -469,6 +471,8 @@ GLOBAL_LIST_EMPTY(siren_objects)
 		plane_type = set_plane_type
 
 /datum/particle_weather/Destroy()
+	if(SSweather_conditions.running_weathers[type] == src)
+		SSweather_conditions.running_weathers[type] = null
 	messaged_mobs = null
 	for(var/atom/movable/screen/plane_master/weather_effect/plane in GLOB.weather_planes[plane_type])
 		plane.particles = null
@@ -495,6 +499,7 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	if(running)
 		return
 	weather_duration = rand(weather_duration_lower, weather_duration_upper)
+	COOLDOWN_START(src, time_left, weather_duration)
 	weather_start_time = world.time
 	running = TRUE
 	addtimer(CALLBACK(src, PROC_REF(wind_down)), weather_duration)
@@ -530,15 +535,15 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	if(severity_steps_taken < severity_steps && as_step)
 		addtimer(CALLBACK(src, PROC_REF(change_severity)), weather_duration / severity_steps)
 
-/datum/particle_weather/proc/wind_down()
+/datum/particle_weather/proc/wind_down(destroy_after)
 	severity = 0
-	particle_effect?.animate_severity(severity_mod())
+	if(particle_effect)
+		particle_effect?.animate_severity(severity_mod())
 	//Wait for the last particle to fade, then qdel yourself
-	addtimer(CALLBACK(src, PROC_REF(end)), particle_effect.lifespan +particle_effect.fade)
-
-/datum/particle_weather/proc/end()
-	running = FALSE
-	SSweather_conditions.stop_weather(plane_type)
+	if(destroy_after)
+		addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(qdel), src), particle_effect.lifespan + particle_effect.fade)
+	else
+		addtimer(VARSET_CALLBACK(src, running, FALSE), particle_effect.lifespan + particle_effect.fade)
 
 /datum/particle_weather/proc/can_weather(mob/living/mob_to_check)
 	var/turf/mob_turf = get_turf(mob_to_check)

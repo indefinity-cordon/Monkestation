@@ -92,6 +92,7 @@ SUBSYSTEM_DEF(global_light)
 	var/game_time_length = 24 HOURS
 
 	var/current_color = null
+	var/time_to_animate = 0
 	var/min_weather_blend_amount = 0.3
 
 	var/enabled = TRUE // Micro-optimization to avoid having to check config or bitflags
@@ -108,6 +109,7 @@ SUBSYSTEM_DEF(global_light)
 	game_time_length = SSglobal_light.game_time_length
 
 	current_color = SSglobal_light.current_color
+	time_to_animate = SSglobal_light.time_to_animate
 	min_weather_blend_amount = SSglobal_light.min_weather_blend_amount
 
 	enabled = SSglobal_light.enabled
@@ -117,12 +119,12 @@ SUBSYSTEM_DEF(global_light)
 	return ..()
 
 /datum/controller/subsystem/global_light/Initialize(timeofday)
-	if(CONFIG_GET(flag/disable_sunlight_visuals))
-		disable()
-		return SS_INIT_NO_NEED
 	if(!initialized)
 		create_steps()
 		set_time_of_day()
+	if(CONFIG_GET(flag/disable_sunlight_visuals))
+		disable()
+		return SS_INIT_NO_NEED
 	return SS_INIT_SUCCESS
 
 /datum/controller/subsystem/global_light/proc/create_steps()
@@ -162,21 +164,7 @@ SUBSYSTEM_DEF(global_light)
 			step.color = data["cycle_colors"][step.name]
 
 //Transition from our last color to our current color (i.e if it is going from daylight (white) to sunset (red), we transition to red in the first hour of sunset)
-/datum/controller/subsystem/global_light/proc/update_color(atom/movable/screen/fullscreen/lighting_backdrop/sunlight/player_screen, on_create)
-	if(!enabled)
-		return
-
-	if(weather_light_affecting_event && !on_create)
-		return
-
-	var/time = station_time()
-	var/time_to_animate = daytimeDiff(time, next_step_datum.start_at * game_time_length)
-	var/blend_amount = (time - current_step_datum.start_at * game_time_length) / (next_step_datum.start_at * game_time_length - current_step_datum.start_at * game_time_length)
-
-	current_color = BlendRGB(current_step_datum.color, next_step_datum.color, blend_amount)
-	if(weather_datum && weather_datum.weather_color_offset)
-		var/weather_blend_amount = (time - weather_datum.weather_start_time) / (weather_datum.weather_start_time + (weather_datum.weather_duration / 12) - weather_datum.weather_start_time)
-		current_color = BlendRGB(current_color, weather_datum.weather_color_offset, min(weather_blend_amount, min_weather_blend_amount))
+/datum/controller/subsystem/global_light/proc/update_color(atom/movable/screen/fullscreen/lighting_backdrop/sunlight/player_screen)
 	player_screen.color = current_color
 	animate(player_screen, color = next_step_datum.color, time = time_to_animate)
 
@@ -263,8 +251,21 @@ SUBSYSTEM_DEF(global_light)
 	//TODO: Better to add global color object, that they take color from, and we have only to change it once for everyone
 	//https://github.com/RU-CMSS13/RU-CMSS13/pull/260/files#diff-b22b29eaf2da600d07a83d146e281e018c438e7b9b668aca863ac1f9f09fe222 (File: core_ru/code/controllers/subsystem/global_light.dm Line: 88)
 	//Can be made solution like this, but theres a catch, variant provided had some issues when I last time ran it at prod scale with client byond dying very rarely and unpredictebly
-	for(var/atom/movable/screen/fullscreen/lighting_backdrop/sunlight/SP as anything in GLOB.global_light_planes_need_vis)
-		update_color(SP)
+	var/time_percented = station_time() / 24 HOURS
+	var/blend_amount = (time_percented - current_step_datum.start_at) / (next_step_datum.start_at - current_step_datum.start_at)
+	current_color = BlendRGB(current_step_datum.color, next_step_datum.color, blend_amount)
+	if(weather_datum && weather_datum.weather_color_offset)
+		var/weather_blend_amount = (time_percented - weather_datum.weather_start_time) / (weather_datum.weather_start_time + (weather_datum.weather_duration / 12) - weather_datum.weather_start_time)
+		current_color = BlendRGB(current_color, weather_datum.weather_color_offset, min(weather_blend_amount, min_weather_blend_amount))
+
+	if(time_percented > next_step_datum.start_at)
+		time_to_animate = 24 + next_step_datum.start_at - time_percented
+	else
+		time_to_animate = time_percented - next_step_datum.start_at
+
+	if(!weather_light_affecting_event)
+		for(var/atom/movable/screen/fullscreen/lighting_backdrop/sunlight/screen as anything in GLOB.global_light_planes_need_vis)
+			update_color(screen)
 
 	check_cycle()
 
