@@ -33,7 +33,7 @@ Sunlight System
 	} \
 	gen_for.lighting_corners_initialised = TRUE;
 
-//TODO: turn it into datum (I'm doing opti, not fucking fuckery around)
+//TODO: turn it into datum (I'm doing opti, not fucking fuckery around) and name global_light etc
 /atom/movable/outdoor_effect
 	name = ""
 	mouse_opacity = FALSE
