@@ -152,6 +152,7 @@ SUBSYSTEM_DEF(global_light)
 		current_step_datum = steps["[worked_length]"]
 		next_step_datum = worked_length == length(steps) ? steps["1"] : steps["[worked_length + 1]"]
 
+//TODO: If yall need separated cycles for maps, need to do multi map handling for personal global light sections, for now I don't see anywhere potential need in this functional, so yea
 /datum/controller/subsystem/global_light/proc/change_configuration_of_steps(list/data)
 	for(var/worked_length = 1 to length(steps))
 		var/datum/time_of_day/step = steps["worked_length"]

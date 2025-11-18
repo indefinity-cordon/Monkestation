@@ -196,9 +196,9 @@
 		LAZYREMOVE(light_source.effect_str, src)
 	affecting = null
 
-	for(var/atom/movable/outdoor_effect/effect as anything in glob_affect)
-		effect.affecting_corners -= src
-	glob_affect = null
+	for(var/atom/movable/outdoor_effect/effect as anything in glob_affect) // monkestation addition
+		effect.affecting_corners -= src // monkestation addition
+	glob_affect = null // monkestation addition
 
 	if (master_NE)
 		master_NE.lighting_corner_SW = null

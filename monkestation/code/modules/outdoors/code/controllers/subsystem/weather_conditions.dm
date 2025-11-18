@@ -133,6 +133,3 @@ SUBSYSTEM_DEF(weather_conditions)
 
 /obj/weather_effect
 	plane = LIGHTING_PLANE
-
-#undef ZTRAIT_STATION
-#undef ZTRAIT_ECLIPSE

@@ -54,6 +54,9 @@
 	/// List of station traits that cannot be rolled on this map.
 	var/list/banned_station_traits
 
+	var/list/map_global_light_modificator = list()
+	var/list/map_global_light_colors = list()
+	var/custom_time_length = list()
 	//List of particle_weather types for this map
 	var/list/particle_weathers = list() //Monkestation addition
 
@@ -174,6 +177,23 @@
 		return
 
 	//monkestation edit start
+	if(islist(json["map_global_light_modificator"]))
+		if(!islist(json["map_global_light_modificator"]))
+			log_world("map_config custom day/night modificator is not a list!")
+			return
+		map_global_light_modificator = json["map_global_light_modificator"]
+
+	if(islist(json["map_global_light_colors"]))
+		if(!islist(json["map_global_light_colors"]))
+			log_world("map_config custom day/night colors is not a list!")
+			return
+		map_global_light_colors = json["map_global_light_colors"]
+
+	if(json["custom_time_length"])
+		custom_time_length = json["custom_time_length"]
+	else
+		custom_time_length = 24 HOURS
+
 	if ("particle_weathers" in json)
 		if(!islist(json["particle_weathers"]))
 			log_world("map_config \"particle_weathers\" field is missing or invalid!")
