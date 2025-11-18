@@ -15,18 +15,12 @@
 
 /atom/movable/screen/fullscreen/lighting_backdrop/sunlight/Initialize(mapload, datum/hud/hud_owner)
 	. = ..()
-	if(!SSoutdoor_effects.enabled)
+	if(!SSglobal_light.enabled)
 		return
-	SSoutdoor_effects.sunlighting_planes |= src
-	color = SSoutdoor_effects.last_color
 
-	var/daylight = FALSE
-	for (var/z in SSmapping.levels_by_trait(ZTRAIT_STATION))
-		if(SSmapping.level_trait(z, ZTRAIT_DAYCYCLE))
-			daylight = TRUE
-			continue
-	SSoutdoor_effects.transition_sunlight_color(src, !daylight)
+	GLOB.global_light_planes_need_vis |= src
+	SSglobal_light.update_color(src)
 
 /atom/movable/screen/fullscreen/lighting_backdrop/sunlight/Destroy()
-	SSoutdoor_effects.sunlighting_planes -= src
+	GLOB.global_light_planes_need_vis -= src
 	return ..()

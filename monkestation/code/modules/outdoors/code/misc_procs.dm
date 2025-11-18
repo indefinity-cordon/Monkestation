@@ -4,9 +4,9 @@
 		return
 	var/datum/particle_weather/current_weather_effect
 	if(is_eclipse_level(turf.z))
-		current_weather_effect = SSparticle_weather.running_eclipse_weather
+		current_weather_effect = SSweather_conditions.running_weathers[ZTRAIT_ECLIPSE]
 	else
-		current_weather_effect = SSparticle_weather.running_weather
+		current_weather_effect = SSweather_conditions.running_weathers[ZTRAIT_STATION]
 	if(current_weather_effect && (turf.turf_flags & TURF_WEATHER))
 		current_weather_effect.process_mob_effect(src, delta_time)
 

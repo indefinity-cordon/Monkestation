@@ -1,5 +1,5 @@
 ADMIN_VERB(run_particle_weather, R_ADMIN, FALSE, "Run Particle Weather", "Triggers a particle weather.", ADMIN_CATEGORY_EVENTS)
-	if(!SSparticle_weather.enabled)
+	if(!SSweather_conditions.enabled)
 		to_chat(user, span_warning("Particle weather is currently disabled!"), type = MESSAGE_TYPE_ADMINLOG)
 		return
 
@@ -14,7 +14,7 @@ ADMIN_VERB(run_particle_weather, R_ADMIN, FALSE, "Run Particle Weather", "Trigge
 	var/send_value = FALSE
 	if(where == "Eclipse")
 		send_value = TRUE
-	SSparticle_weather.run_weather(new weather_type(where), TRUE, send_value)
+	SSweather_conditions.run_weather(new weather_type(where), TRUE, send_value)
 
 	message_admins("[key_name_admin(user)] started weather of type [weather_type].")
 	log_admin("[key_name(user)] started weather of type [weather_type].")

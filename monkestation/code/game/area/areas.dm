@@ -9,8 +9,7 @@
 		var/turf/arrived_turf = get_turf(arrived)
 		if(!arrived_turf?.z)
 			return
-		if(SSparticle_weather.running_eclipse_weather || SSparticle_weather.running_weather)
-			if(SSparticle_weather.running_eclipse_weather && SSmapping.level_has_all_traits(arrived_turf.z, list(ZTRAIT_ECLIPSE)))
-				SSparticle_weather.running_eclipse_weather.weather_sound_effect(arrived)
-			if(SSparticle_weather.running_weather && SSmapping.level_has_all_traits(arrived_turf.z, list(ZTRAIT_STATION)))
-				SSparticle_weather.running_weather.weather_sound_effect(arrived)
+
+		for(var/type in list(ZTRAIT_ECLIPSE, ZTRAIT_STATION))
+			if(SSweather_conditions.running_weathers[type] && SSmapping.level_trait(arrived_turf.z, type))
+				SSweather_conditions.running_weathers[type].weather_sound_effect(arrived)

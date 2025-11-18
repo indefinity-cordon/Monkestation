@@ -553,20 +553,20 @@
 	plane = WEATHER_EFFECT_PLANE
 	appearance_flags = PLANE_MASTER
 	blend_mode = BLEND_OVERLAY
+	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	render_relay_planes = list(RENDER_PLANE_GAME)
 	offsetting_flags = BLOCKS_PLANE_OFFSETTING|OFFSET_RELAYS_MATCH_HIGHEST
 	critical = PLANE_CRITICAL_DISPLAY
-	var/z_type = "Default"
+	var/z_type = ZTRAIT_STATION
 
 /atom/movable/screen/plane_master/weather_effect/Initialize(mapload, datum/hud/hud_owner)
 	. = ..()
-	//filters += filter(type="alpha", render_source=WEATHER_RENDER_TARGET)
-	if(SSoutdoor_effects.enabled)
-		SSoutdoor_effects.weather_planes_need_vis |= src
+	add_filter("weather", 1, alpha_mask_filter(render_source = OFFSET_RENDER_TARGET("*WEATHER_OVERLAY_PLANE_[uppertext(type)]", offset), flags = MASK_INVERSE))
+	GLOB.weather_planes[z_type] += src
 
 /atom/movable/screen/plane_master/weather_effect/Destroy()
 	. = ..()
-	SSoutdoor_effects.weather_planes_need_vis -= src
+	GLOB.weather_planes[z_type] -= src
 
 /atom/movable/screen/plane_master/weather_effect/check_outside_bounds()
 	return FALSE
@@ -579,7 +579,7 @@
 /atom/movable/screen/plane_master/weather_effect/eclipse
 	name = "weather effect eclipse plane master"
 	plane = WEATHER_EFFECT_PLANE_ECLIPSE
-	z_type = "Eclipse"
+	z_type = ZTRAIT_ECLIPSE
 
 //Contains all sunlight overlays
 /atom/movable/screen/plane_master/sunlight

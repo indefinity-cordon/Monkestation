@@ -19,6 +19,7 @@
 	probability = 1
 	target_trait = PARTICLEWEATHER_DUST
 
+	weather_color_offset = "#7c4f17"
 	weather_warnings = list("siren" = "WARNING. A POTENTIALLY DANGEROUS WEATHER ANOMALY HAS BEEN DETECTED. SEEK SHELTER IMMEDIATELY.", "message" = TRUE)
 	fire_smothering_strength = 2
 

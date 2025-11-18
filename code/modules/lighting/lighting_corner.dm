@@ -79,7 +79,7 @@
 		process_next.lighting_corner_NW = src
 
 /datum/lighting_corner/proc/self_destruct_if_idle()
-	if (!LAZYLEN(affecting) && !LAZYLEN(globAffect)) //monkestation edit + && !LAZYLEN(globAffect)
+	if(!length(affecting) && !length(glob_affect)) //monkestation edit + && !length(glob_affect)
 		qdel(src, force = TRUE)
 
 /datum/lighting_corner/proc/vis_update()
@@ -195,6 +195,10 @@
 	for (var/datum/light_source/light_source as anything in affecting)
 		LAZYREMOVE(light_source.effect_str, src)
 	affecting = null
+
+	for(var/atom/movable/outdoor_effect/effect as anything in glob_affect)
+		effect.affecting_corners -= src
+	glob_affect = null
 
 	if (master_NE)
 		master_NE.lighting_corner_SW = null

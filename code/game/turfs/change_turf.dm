@@ -147,7 +147,7 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	if(SSlighting.initialized)
 		// Space tiles should never have lighting objects
 		//monkestation addition start
-		if(SSoutdoor_effects.initialized && SSoutdoor_effects.enabled)
+		if(SSglobal_light.initialized && SSglobal_light.enabled)
 			outdoor_effect = old_outdoor_effect
 			get_sky_and_weather_states()
 

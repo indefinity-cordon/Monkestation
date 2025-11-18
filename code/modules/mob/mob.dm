@@ -56,9 +56,12 @@
 	if(mock_client)
 		mock_client.mob = null
 
-	if(SSparticle_weather.running_weather)
-		if(src in SSparticle_weather.running_weather.messaged_mobs)
-			SSparticle_weather.running_weather.messaged_mobs -= src
+	for(var/type in SSweather_conditions.running_weathers)
+		var/datum/particle_weather/weather = SSweather_conditions.running_weathers[type]
+		if(!weather)
+			continue
+
+		weather.messaged_mobs -= src
 
 	return ..()
 

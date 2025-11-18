@@ -18,6 +18,9 @@
 	probability = 1
 	target_trait = PARTICLEWEATHER_RAIN
 
+	weather_special_effect_path = /datum/weather_effect/rain
+
+	weather_color_offset = "#23386b"
 	weather_additional_events = list("thunder" = list(3, /datum/weather_event/thunder), "wind" = list(4, /datum/weather_event/wind))
 	weather_warnings = list("siren" = null, "message" = FALSE)
 	fire_smothering_strength = 6
@@ -43,6 +46,9 @@
 	probability = 1
 	target_trait = PARTICLEWEATHER_RAIN
 
+	weather_special_effect_path = /datum/weather_effect/rain
+
+	weather_color_offset = "#102356"
 	weather_additional_events = list("thunder" = list(6, /datum/weather_event/thunder), "wind" = list(8, /datum/weather_event/wind))
 	weather_warnings = list("siren" = null, "message" = FALSE)
 	fire_smothering_strength = 6

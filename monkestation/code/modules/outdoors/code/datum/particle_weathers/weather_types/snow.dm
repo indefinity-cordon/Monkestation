@@ -28,6 +28,9 @@
 	probability = 1
 	target_trait = PARTICLEWEATHER_SNOW
 
+	weather_special_effect_path = /datum/weather_effect/snow
+
+	weather_color_offset = "#5d7979"
 	weather_additional_events = list("wind" = list(5, /datum/weather_event/wind))
 
 /datum/particle_weather/snow_gentle/can_weather_effect(mob/living/mob_to_check)
@@ -64,6 +67,9 @@
 	probability = 1
 	target_trait = PARTICLEWEATHER_SNOW
 
+	weather_special_effect_path = /datum/weather_effect/snow
+
+	weather_color_offset = "#2a6262"
 	weather_additional_events = list("wind" = list(10, /datum/weather_event/wind))
 	weather_warnings = list("siren" = "WARNING. A POTENTIALLY DANGEROUS WEATHER ANOMALY HAS BEEN DETECTED. SEEK SHELTER IMMEDIATELY", "message" = TRUE)
 	fire_smothering_strength = 4

@@ -89,12 +89,6 @@
 #define COMSIG_GLOB_NULLROD_PICKED "!nullrod_picked"
 
 
-//monkestation edit start
-// Used for smothering fires upon weather event start/stop
-#define COMSIG_GLOB_WEATHER_CHANGE "!weather_event_changed"
-
-#define COMSIG_GLOB_WEATHER_EFFECT "!weather_effect_update"
-//monkestation edit end
 
 /// Global signal sent when darkspawns ascend: (No arguments)
 #define COMSIG_DARKSPAWN_ASCENSION "!darkspawn_ascension"

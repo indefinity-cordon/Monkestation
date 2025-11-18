@@ -24,7 +24,7 @@
 	if(istype(turf, /turf/open/floor/plating/ocean))
 		turf.TerraformTurf(/turf/open/floor/plating/ocean/pit, /turf/open/floor/plating/ocean/pit,  flags = CHANGETURF_INHERIT_AIR)
 		turf.get_sky_and_weather_states()
-		turf.reconsider_sunlight()
+		turf.reconsider_global_light()
 		turf.outdoor_effect.Move(turf)
 		turf.contents |= turf.outdoor_effect
 	qdel(src)

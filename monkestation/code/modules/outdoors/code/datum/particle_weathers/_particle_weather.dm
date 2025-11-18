@@ -8,6 +8,11 @@ GLOBAL_LIST_EMPTY(siren_objects)
 #define GLE_TAGE_FIVE		5
 #define GLE_STAGE_SIX		6
 
+/turf
+	var/obj/structure/snow/snow
+
+//TODO: Do in right way events, without shitcode (some day in far-far future I'll do it) //EDIT: never happened, project died (lego falling apart sound download, free no ADs)
+
 //SPECIAL EVENTS
 /datum/weather_event
 	var/name = ""
@@ -17,7 +22,6 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	var/repeats = 0
 	var/max_stages = 0
 	var/stage = GLE_STAGE_NONE
-	var/stage_processing = FALSE
 	var/datum/particle_weather/initiator_ref
 
 /datum/weather_event/New(datum/particle_weather/particle_weather)
@@ -29,7 +33,8 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	if(initiator_ref)
 		initiator_ref.weather_additional_ongoing_events -= src
 		initiator_ref = null
-	return ..()
+
+	. = ..()
 
 /datum/weather_event/proc/start_process()
 	return
@@ -39,7 +44,7 @@ GLOBAL_LIST_EMPTY(siren_objects)
 
 /datum/weather_event/thunder
 	name = "Thunder"
-	duration = 1.5 SECONDS
+	duration = 1 SECONDS
 	affecting_value = list("#74DFF7", "#81A7DB", "#7997FC", "#5b73c3", "#2e5fff")
 	max_stages = 3
 	stage = GLE_STAGE_FIRST
@@ -48,12 +53,19 @@ GLOBAL_LIST_EMPTY(siren_objects)
 		'monkestation/code/modules/outdoors/sound/weather/rain/thunder_5.ogg', 'monkestation/code/modules/outdoors/sound/weather/rain/thunder_6.ogg', 'monkestation/code/modules/outdoors/sound/weather/rain/thunder_7.ogg',
 	)
 
+/datum/weather_event/thunder/Destroy(force)
+	if(SSglobal_light.weather_light_affecting_event == src)
+		SSglobal_light.weather_light_affecting_event = null
+
+	. = ..()
+
 /datum/weather_event/thunder/start_process()
 	repeats = rand(1, 3)
-	duration = duration + rand(-duration * 5, duration * 10) / 10
-	stage_processing = TRUE
+	duration = duration + rand(-duration*5, duration*10)/10
+	SSglobal_light.weather_light_affecting_event = src
 	stage_process()
 
+//TODO: If I or some body else come around, better really do it normal way, not the way of "Третий час ночи, я в тылу врага, они странно изменять своя внешность, один из них отрастить рога"
 /datum/weather_event/thunder/stage_process()
 	var/color_animating
 	var/animate_flags = CIRCULAR_EASING
@@ -62,17 +74,15 @@ GLOBAL_LIST_EMPTY(siren_objects)
 			color_animating = pick(affecting_value)
 			animate_flags = ELASTIC_EASING | EASE_IN | EASE_OUT
 			spawn(duration - rand(0, duration * 10) / 10)
-				if(initiator_ref.plane_type == "Default")
-					playsound_z(SSmapping.levels_by_trait(ZTRAIT_STATION), pick(sound_effects), 50, _mixer_channel = CHANNEL_WEATHER)
-				else
-					playsound_z(SSmapping.levels_by_trait(ZTRAIT_ECLIPSE), pick(sound_effects), 50, _mixer_channel = CHANNEL_WEATHER)
+			playsound_z(SSmapping.levels_by_trait(initiator_ref.plane_type), pick(sound_effects), 50, _mixer_channel = CHANNEL_WEATHER)
+
 		if(GLE_STAGE_THIRD)
-			if(SSoutdoor_effects.enabled)
-				color_animating = SSoutdoor_effects.current_color
+			if(SSglobal_light.enabled)
+				color_animating = SSglobal_light.current_color
 			animate_flags = CIRCULAR_EASING | EASE_IN
 
-	if(color_animating && SSoutdoor_effects.enabled)
-		for(var/atom/movable/screen/fullscreen/lighting_backdrop/sunlight/plane in SSoutdoor_effects.sunlighting_planes)
+	if(color_animating && SSglobal_light.enabled)
+		for(var/atom/movable/screen/fullscreen/lighting_backdrop/sunlight/plane in GLOB.global_light_planes_need_vis)
 			animate(plane, color = color_animating, easing = animate_flags, time = duration)
 
 	sleep(duration)
@@ -83,10 +93,9 @@ GLOBAL_LIST_EMPTY(siren_objects)
 		sleep(duration)
 
 	else if(stage > max_stages)
-		if(SSoutdoor_effects.enabled)
-			SSoutdoor_effects.weather_light_affecting_event = null
-			for(var/atom/movable/screen/fullscreen/lighting_backdrop/sunlight/plane in SSoutdoor_effects.sunlighting_planes)
-				SSoutdoor_effects.transition_sunlight_color(plane)
+		if(SSglobal_light.enabled)
+			for(var/atom/movable/screen/fullscreen/lighting_backdrop/sunlight/plane in GLOB.global_light_planes_need_vis)
+				SSglobal_light.update_color(plane)
 		qdel(src)
 		return
 
@@ -95,13 +104,12 @@ GLOBAL_LIST_EMPTY(siren_objects)
 /datum/weather_event/wind
 	name = "Wind"
 	duration = 10 SECONDS
-	affecting_value = list("min_value" = 20, "max_value" = 80)
+	affecting_value = list("min_value" = 10, "max_value" = 60)
 	max_stages = 2
 	stage = GLE_STAGE_FIRST
 
 /datum/weather_event/wind/start_process()
 	duration = duration + rand(-duration, duration)
-	stage_processing = TRUE
 	stage_process()
 
 /datum/weather_event/wind/stage_process()
@@ -141,11 +149,261 @@ GLOBAL_LIST_EMPTY(siren_objects)
 
 /datum/weather_effect/rain
 	name = "rain effect"
-	probability = 20
+	probability = 60
 
 /datum/weather_effect/rain/effect_affect(turf/target_turf)
 	for(var/obj/effect/decal/cleanable/decal in target_turf)
 		qdel(decal)
+
+//	if(target_turf.snow && prob(probability * 0.25))
+//		target_turf.snow.damage_act(1)
+
+/datum/weather_effect/snow
+	name = "snow effect"
+	probability = 20
+
+/datum/weather_effect/snow/effect_affect(turf/target_turf)
+//	if(!target_turf.snow)
+//		new /obj/structure/snow(target_turf, 1)
+//	else
+//		target_turf.snow.weathered(src)
+
+// Do you like the sonw?
+// No
+// Why not?
+// sobs ... sobs
+// Can you say snooooow?
+// Waaaaaaaaaaaaaaaaaaaaaaaaaa
+/* idk I don't know this codebase and don't want waste more time
+/obj/structure/snow
+	name = "Snow"
+	desc = "Big pile of snow"
+	icon = 'core_ru/icons/effects/snow.dmi'
+	icon_state = "snow_1"
+	var/icon_prefix = "snow"
+	anchored = TRUE
+	density = FALSE
+	throwpass = TRUE
+	plane = GAME_PLANE
+	layer = BELOW_TABLE_LAYER
+	var/bleed_layer = 0
+	var/progression = 0
+	var/turf/snowed_turf
+	var/list/snows_connections = list(list("0", "0", "0", "0"), list("0", "0", "0", "0"), list("0", "0", "0", "0"))
+	var/list/diged = list("2" = 0, "1" = 0, "8" = 0, "4" = 0)
+
+/obj/structure/snow/Initialize(mapload, bleed_layers)
+	. = ..()
+	icon_state = "blank"
+	bleed_layer = bleed_layers
+	if(!bleed_layer)
+		bleed_layer = rand(1, 3)
+
+	update_visuals_effects()
+	RegisterSignal(src, COMSIG_ATOM_TURF_CHANGE, PROC_REF(update_visuals_effects))
+
+	START_PROCESSING(SSslowobj, src)
+
+	update_corners(TRUE)
+	update_overlays()
+
+/obj/structure/snow/Destroy(force)
+	update_visuals_effects(src, FALSE)
+	STOP_PROCESSING(SSslowobj, src)
+	snowed_turf.snow = null
+	snowed_turf = null
+
+	. = ..()
+
+/obj/structure/snow/process()
+	if(!SSweather_conditions.running_weather)
+		damage_act(3)
+	else if(SSweather_conditions.running_weather.weather_special_effect != /datum/weather_effect/snow)
+		damage_act(6)
+	update_overlays()
+
+/obj/structure/snow/proc/update_visuals_effects(datum/source, replace = TRUE)
+	SIGNAL_HANDLER
+
+	var/list/contained_mobs = list()
+	for(var/mob/living/contained_mob in contents)
+		contained_mobs += contained_mob
+		SEND_SIGNAL(src, COMSIG_MOB_OVERLAY_FORCE_REMOVE, contained_mob)
+
+	RemoveElement(/datum/element/mob_overlay_effect)
+	if(replace)
+		AddElement(/datum/element/mob_overlay_effect, bleed_layer * 2.4, bleed_layer * 1.2, 100)
+		for(var/mob/living/contained_mob as anything in contained_mobs)
+			SEND_SIGNAL(src, COMSIG_MOB_OVERLAY_FORCE_UPDATE, contained_mob)
+
+/obj/structure/snow/proc/update_corners(propagate = FALSE)
+	var/list/snow_dirs = list(list(), list(), list())
+	var/turf/turf = get_turf(src)
+	if(!turf)
+		return
+	if(turf != snowed_turf)
+		if(snowed_turf)
+			snowed_turf.snow = null
+		snowed_turf = turf
+		snowed_turf.snow = src
+
+	if(snowed_turf.weeds)
+		snowed_turf.weeds.Destroy()
+
+	for(var/obj/structure/snow/bordered_snow in orange(src, 1))
+		if(!bordered_snow)
+			continue
+
+		if(propagate)
+			bordered_snow.update_corners()
+			bordered_snow.update_overlays()
+
+		var/direction = get_dir(src, bordered_snow)
+		for(var/deep = 1 to length(snow_dirs))
+			if(deep > bleed_layer)
+				continue
+
+			if(deep > bordered_snow.bleed_layer)
+				continue
+
+			snow_dirs[deep] += direction
+
+	for(var/deep = 1 to length(snow_dirs))
+		snows_connections[deep] = dirs_to_corner_states(snow_dirs[deep])
+
+/obj/structure/snow/proc/update_overlays()
+	if(overlays)
+		overlays.Cut()
+
+	for(var/deep = 1 to length(snows_connections))
+		if(deep > bleed_layer)
+			continue
+
+		for(var/i = 1 to 4)
+			overlays += image(icon, "[icon_prefix]_[deep]_[snows_connections[deep][i]]", dir = 1<<(i-1))
+
+	var/new_overlay = ""
+	for(var/i in diged)
+		if(diged[i] > world.time)
+			new_overlay += i
+	overlays += "[new_overlay]"
+
+/obj/structure/snow/proc/damage_act(damage)
+	var/remaining = progression - damage
+	if(remaining > 0 )
+		progression = remaining
+	else
+		if(remaining < -(bleed_layer * 4))
+			changing_layer(0)
+		else
+			changing_layer(bleed_layer - 1)
+			progression = bleed_layer * 4
+
+/obj/structure/snow/get_projectile_hit_boolean(obj/projectile/proj)
+	return FALSE
+
+/obj/structure/snow/bullet_act(obj/projectile/proj)
+	return FALSE
+
+/obj/structure/snow/flamer_fire_act(damage)
+	damage_act(damage)
+
+/obj/structure/snow/proc/weathered(datum/weather_effect/effect)
+	if(progression < bleed_layer * 8)
+		progression++
+	else
+		if(bleed_layer >= 3)
+			for(var/direction in GLOB.alldirs)
+				var/turf/turf = get_step(loc, direction)
+				if(!turf.snow)
+					turf.apply_weather_effect(effect)
+					break
+
+				else if(turf.snow && turf.snow.bleed_layer != 3)
+					turf.snow.progression += progression
+					break
+		else
+			changing_layer(min(bleed_layer + 1, MAX_LAYER_SNOW_LEVELS))
+
+		progression = 0
+
+/obj/structure/snow/proc/changing_layer(new_layer)
+	if(isnull(new_layer) || new_layer == bleed_layer)
+		return
+
+	bleed_layer = max(0, new_layer)
+
+	if(!bleed_layer)
+		qdel(src)
+		return
+
+	switch(bleed_layer)
+		if(1)
+			throwpass= TRUE
+			layer = BELOW_TABLE_LAYER
+		if(2)
+			throwpass= TRUE
+			layer = BELOW_OBJ_LAYER
+		if(3)
+			throwpass= FALSE
+			layer = OBJ_LAYER
+
+	update_corners(TRUE)
+	update_overlays()
+
+	update_visuals_effects()
+
+/obj/structure/snow/ex_act(severity)
+	damage_act(severity)
+
+/obj/structure/snow/Crossed(atom/movable/arrived)
+	. = ..()
+	if(isliving(arrived))
+		var/mob/living/living = arrived
+		if(bleed_layer > 1)
+			var/new_slowdown = living.next_move_slowdown + (0.35 * bleed_layer)
+			if(prob(10))
+				to_chat(living, SPAN_WARNING("Moving through [src] slows you down.")) //Warning only
+				new_slowdown += 2 SECONDS
+			else if(bleed_layer == 3 && prob(2))
+				to_chat(living, SPAN_WARNING("You get stuck in [src] for a moment!"))
+				new_slowdown += 4 SECONDS
+			living.next_move_slowdown = new_slowdown
+		set_diged_ways(GLOB.reverse_dir[living.dir])
+
+/obj/structure/snow/Uncrossed(atom/movable/gone)
+	. = ..()
+	if(isliving(gone))
+		set_diged_ways(gone.dir)
+
+/obj/structure/snow/proc/set_diged_ways(dir)
+	diged["[dir]"] = world.time + 1 MINUTES
+	update_overlays()
+
+/obj/structure/snow/attack_alien(mob/living/carbon/xenomorph/xenomorph)
+	if(xenomorph.a_intent == INTENT_HARM) //Missed slash.
+		return
+	if(xenomorph.a_intent == INTENT_HELP || !bleed_layer)
+		return ..()
+
+	xenomorph.visible_message(SPAN_NOTICE("[xenomorph] starts clearing out \the [src]..."), SPAN_NOTICE("You start clearing out \the [src]..."), null, 5, CHAT_TYPE_XENO_COMBAT)
+	playsound(xenomorph.loc, 'sound/weapons/alien_claw_swipe.ogg', 25, 1)
+
+	while(bleed_layer > 0)
+		xeno_attack_delay(xenomorph)
+		if(!do_after(xenomorph, 12, INTERRUPT_ALL, BUSY_ICON_FRIENDLY))
+			return XENO_NO_DELAY_ACTION
+
+		if(!bleed_layer)
+			to_chat(xenomorph, SPAN_WARNING("There is nothing to clear out!"))
+			return XENO_NO_DELAY_ACTION
+
+		var/new_layer = bleed_layer - 1
+		changing_layer(new_layer)
+
+	return XENO_NO_DELAY_ACTION
+*/
+
 
 /datum/particle_weather
 	var/name = "set this"
@@ -159,7 +417,8 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	var/list/wind_sounds = list(/datum/looping_sound/wind)
 	var/scale_vol_with_severity = TRUE
 
-	var/particles/weather/particle_effect_type = /particles/weather/rain
+	var/particle_effect_type = /particles/weather/rain
+	var/particles/weather/particle_effect = null
 
 	var/weather_duration_lower = 5 MINUTES
 	var/weather_duration_upper = 20 MINUTES
@@ -184,10 +443,13 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	var/weather_duration = 0
 	var/weather_start_time = 0
 
-	var/weather_special_effect
+	var/weather_special_effect_path
+	var/datum/weather_effect/weather_special_effect
+
+	var/weather_color_offset
 	var/list/weather_additional_events = list()
 	var/list/datum/weather_event/weather_additional_ongoing_events = list()
-	var/list/messaged_mobs = list()
+	var/list/mob/living/messaged_mobs = list()
 	var/list/datum/looping_sound/current_sounds = list()
 	var/list/datum/looping_sound/current_wind_sounds = list()
 	var/list/affected_zlevels = list()
@@ -198,23 +460,31 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	var/plane_type = "Default"
 	var/eclipse = FALSE
 
-/datum/particle_weather/New(plane_type)
+/datum/particle_weather/New(set_plane_type)
+	weather_special_effect = new weather_special_effect(src)
+
 	. = ..()
-	if(plane_type)
-		src.plane_type = plane_type
+
+	if(set_plane_type)
+		plane_type = set_plane_type
 
 /datum/particle_weather/Destroy()
 	messaged_mobs = null
+	for(var/atom/movable/screen/plane_master/weather_effect/plane in GLOB.weather_planes[plane_type])
+		plane.particles = null
+	QDEL_NULL(particle_effect)
+	QDEL_NULL(weather_special_effect)
 	QDEL_LIST(weather_additional_ongoing_events)
 	QDEL_LIST_ASSOC_VAL(current_sounds)
 	QDEL_LIST_ASSOC_VAL(current_wind_sounds)
-	return ..()
+
+	. = ..()
 
 /datum/particle_weather/proc/severity_mod()
 	return severity / max_severity
 
 /datum/particle_weather/proc/tick()
-	if(weather_additional_events)
+	if(weather_additional_events && prob(max(severity, 10)))
 		for(var/event in weather_additional_events)
 			if(!prob(weather_additional_events[event][1]))
 				continue
@@ -225,22 +495,15 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	if(running)
 		return
 	weather_duration = rand(weather_duration_lower, weather_duration_upper)
-	COOLDOWN_START(src, time_left, weather_duration)
 	weather_start_time = world.time
 	running = TRUE
 	addtimer(CALLBACK(src, PROC_REF(wind_down)), weather_duration)
 	weather_warnings()
 	if(particle_effect_type)
-		SSparticle_weather.set_particle_effect(new particle_effect_type, plane_type);
+		particle_effect = new particle_effect_type
+		for(var/atom/movable/screen/plane_master/weather_effect/plane in GLOB.weather_planes[plane_type])
+			plane.particles = particle_effect
 
-	if(weather_special_effect)
-		switch(plane_type)
-			if("Default")
-				SSparticle_weather.weather_special_effect = new weather_special_effect(src)
-			if("Eclipse")
-				SSparticle_weather.weather_special_effect_eclipse = new weather_special_effect(src)
-			else
-				stack_trace("[src] had invalid plane_type [plane_type]")
 	change_severity()
 
 /datum/particle_weather/proc/change_severity(as_step = TRUE)
@@ -258,13 +521,8 @@ GLOBAL_LIST_EMPTY(siren_objects)
 
 	severity = clamp(severity + wind_severity, min_severity, max_severity)
 
-	switch(plane_type)
-		if("Default")
-			SSparticle_weather.particle_effect?.animate_severity(severity_mod())
-		if("Eclipse")
-			SSparticle_weather.particle_effect_eclipse?.animate_severity(severity_mod())
-		else
-			stack_trace("[src] had invalid plane_type [plane_type]")
+	if(particle_effect)
+		particle_effect.animate_severity(severity_mod())
 
 	if(last_message != scale_range_pick(min_severity, max_severity, severity, weather_messages))
 		messaged_mobs = list()
@@ -274,21 +532,13 @@ GLOBAL_LIST_EMPTY(siren_objects)
 
 /datum/particle_weather/proc/wind_down()
 	severity = 0
-	switch(plane_type)
-		if("Default")
-			SSparticle_weather.particle_effect?.animate_severity(severity_mod())
-			//Wait for the last particle to fade, then qdel yourself
-			addtimer(CALLBACK(src, PROC_REF(end)), SSparticle_weather.particle_effect.lifespan + SSparticle_weather.particle_effect.fade)
-		if("Eclipse")
-			SSparticle_weather.particle_effect_eclipse?.animate_severity(severity_mod())
-			//Wait for the last particle to fade, then qdel yourself
-			addtimer(CALLBACK(src, PROC_REF(end)), SSparticle_weather.particle_effect_eclipse.lifespan + SSparticle_weather.particle_effect_eclipse.fade)
-		else
-			stack_trace("[src] had invalid plane_type [plane_type]")
+	particle_effect?.animate_severity(severity_mod())
+	//Wait for the last particle to fade, then qdel yourself
+	addtimer(CALLBACK(src, PROC_REF(end)), particle_effect.lifespan +particle_effect.fade)
 
 /datum/particle_weather/proc/end()
 	running = FALSE
-	SSparticle_weather.stop_weather(plane_type)
+	SSweather_conditions.stop_weather(plane_type)
 
 /datum/particle_weather/proc/can_weather(mob/living/mob_to_check)
 	var/turf/mob_turf = get_turf(mob_to_check)
@@ -325,22 +575,18 @@ GLOBAL_LIST_EMPTY(siren_objects)
 	messaged_mobs |= target
 	weather_sound_effect(target)
 	if(can_weather(target) && running)
-		if(can_weather_effect(target))
-			if((last_message || weather_messages) && (!messaged_mobs[target] || world.time > messaged_mobs[target]))
-				weather_message(target)
-			affect_mob_effect(target, delta_time)
+		if(!can_weather_effect(target))
+			return
+
+		if((last_message || weather_messages) && (!messaged_mobs[target] || world.time > messaged_mobs[target]))
+			weather_message(target)
+		affect_mob_effect(target, delta_time)
 	else
 		var/turf/mob_turf = get_turf(target)
 		if(mob_turf)
-			switch(plane_type)
-				if("Default")
-					if(!is_station_level(mob_turf.z))
-						stop_weather_sound_effect(target)
-				if("Eclipse")
-					if(!is_eclipse_level(mob_turf.z))
-						stop_weather_sound_effect(target)
-				else
-					stack_trace("[src] had invalid plane_type [plane_type]")
+			if(!SSmapping.level_trait(mob_turf.z, plane_type))
+				stop_weather_sound_effect(target)
+
 		messaged_mobs -= target
 
 /datum/particle_weather/proc/affect_mob_effect(mob/living/target, delta_time, calculated_damage)
